@@ -1,70 +1,111 @@
-# Getting Started with Create React App
+# Football Predictions Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Description
 
-## Available Scripts
+Cette application web de pronostics de football est développée dans le cadre d'un projet pédagogique pour démontrer la compréhension des concepts de cybersécurité, notamment les vulnérabilités XSS (Cross-Site Scripting) et IDOR (Insecure Direct Object Reference). L'application permet aux utilisateurs de s'inscrire, de se connecter, de soumettre des prédictions de matchs de football, de voir les prédictions et de se déconnecter.
 
-In the project directory, you can run:
+## Technologies utilisées
 
-### `npm start`
+- Frontend : React
+- Backend : Node.js, Express
+- Base de données : SQLite
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Installation
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. **Clonez le dépôt :**
 
-### `npm test`
+    ```bash
+    git clone <URL_DU_DEPOT>
+    cd <NOM_DU_DEPOT>
+    ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2. **Installez les dépendances pour le backend :**
 
-### `npm run build`
+    ```bash
+    cd backend
+    npm install
+    ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. **Installez les dépendances pour le frontend :**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+    ```bash
+    cd frontend
+    npm install
+    ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Lancement de l'application
 
-### `npm run eject`
+1. **Lancez le backend :**
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+    ```bash
+    cd backend
+    node index.js
+    ```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+    Le serveur backend écoute sur `http://localhost:5001`.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+2. **Lancez le frontend :**
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+    ```bash
+    cd frontend
+    npm start
+    ```
 
-## Learn More
+    Le frontend est accessible sur `http://localhost:3000`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Utilisation
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Inscription :** Entrez un nom d'utilisateur, un mot de passe et un email pour créer un compte.
+- **Connexion :** Connectez-vous avec votre nom d'utilisateur et votre mot de passe.
+- **Soumettre une prédiction :** Entrez les détails du match et votre prédiction.
+- **Voir les prédictions :** Affichez toutes les prédictions soumises.
+- **Déconnexion :** Cliquez sur le bouton de déconnexion pour vous déconnecter.
 
-### Code Splitting
+## Vulnérabilités intentionnelles
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### XSS (Cross-Site Scripting)
 
-### Analyzing the Bundle Size
+La vulnérabilité XSS est présente dans l'affichage des prédictions. Le code suivant permet l'injection de code HTML/JavaScript dans les prédictions soumises.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+**Frontend (React) - Composant `PredictionsList` :**
 
-### Making a Progressive Web App
+```javascript
+const PredictionsList = ({ predictions }) => {
+  return (
+    <ul>
+      {predictions.map(prediction => (
+        <li key={prediction.id} dangerouslySetInnerHTML={{ __html: `${prediction.match}: ${prediction.prediction} (User ${prediction.user_id})` }} />
+      ))}
+    </ul>
+  );
+};
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### IDOR
 
-### Advanced Configuration
+ La vulnérabilité IDOR est présente dans la route permettant de voir une prédiction spécifique. La route ne vérifie pas si l'utilisateur a le droit d'accéder à la prédiction demandée.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+ router.get('/view/:id', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT * FROM predictions WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!row) {
+      return res.status(404).json({ error: 'Prediction not found' });
+    }
+    res.status(200).json({ prediction: row });
+  });
+});
 
-### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+ ### Mesures correctives
+    Pour XSS :
 
-### `npm run build` fails to minify
+Évitez d'utiliser dangerouslySetInnerHTML.
+Utilisez des bibliothèques pour échapper les entrées utilisateur avant de les afficher.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+    Pour IDOR :
+
+Implémentez des contrôles d'accès robustes.
+Vérifiez que l'utilisateur authentifié a le droit d'accéder à la ressource demandée avant de la renvoyer.
+    
